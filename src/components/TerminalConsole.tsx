@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Terminal, Trash2, Square, Play, RefreshCw, CheckCircle, AlertTriangle } from "lucide-react";
+import { Terminal, Trash2, Square } from "lucide-react";
 
 interface TerminalConsoleProps {
   activeFileName: string;
@@ -20,42 +20,24 @@ export const TerminalConsole: React.FC<TerminalConsoleProps> = ({
   registerStopTrigger
 }) => {
   const [history, setHistory] = useState<string[]>([]);
-  const [currentInput, setCurrentInput] = useState("");
-  const [waitingForInput, setWaitingForInput] = useState(false);
-
-  const wsRef = useRef<WebSocket | null>(null);
   const consoleBottomRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   // Auto-scroll terminal
   useEffect(() => {
     consoleBottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [history, currentInput]);
-
-  // Focus terminal input when waiting
-  useEffect(() => {
-    if (waitingForInput) {
-      inputRef.current?.focus();
-    }
-  }, [waitingForInput]);
+  }, [history]);
 
   // Handle Stop execution
   const stopExecution = () => {
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ type: "kill" }));
-    } else {
-      setIsRunning(false);
-      setWaitingForInput(false);
-      setHistory((prev) => [...prev, "\n^C Process stopped by user.\n"]);
-    }
+    setIsRunning(false);
+    setHistory((prev) => [...prev, "\n^C Process stopped by user.\n"]);
   };
 
-  // Handle Run execution via WebSocket with HTTP fallback
+  // Handle Run execution via HTTP API
   const startExecution = () => {
     if (isRunning) return;
 
     setIsRunning(true);
-    setWaitingForInput(false);
 
     // Header banner in terminal
     setHistory((prev) => [
@@ -63,61 +45,10 @@ export const TerminalConsole: React.FC<TerminalConsoleProps> = ({
       `$ tanglish ${activeFileName || "main.tgl"}\n`
     ]);
 
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/ws/terminal`;
-
-    try {
-      const socket = new WebSocket(wsUrl);
-      wsRef.current = socket;
-
-      socket.onopen = () => {
-        socket.send(JSON.stringify({ type: "run", code }));
-      };
-
-      socket.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-
-          if (data.type === "stdout" || data.type === "stderr") {
-            const text: string = data.text;
-            setHistory((prev) => [...prev, text]);
-
-            // Detect if prompt is asking for input (e.g. prompt without newline or ends with "? ", ": ")
-            if (text.includes("?") || text.includes(":") || !text.endsWith("\n")) {
-              setWaitingForInput(true);
-            }
-          } else if (data.type === "exit") {
-            const exitCode = data.code ?? 0;
-            const statusLine = exitCode === 0
-              ? `\nProcess exited with code 0\n`
-              : `\nProcess exited with code ${exitCode}\n`;
-
-            setHistory((prev) => [...prev, statusLine]);
-            setIsRunning(false);
-            setWaitingForInput(false);
-            wsRef.current = null;
-          }
-        } catch (e) {
-          setHistory((prev) => [...prev, event.data]);
-        }
-      };
-
-      socket.onerror = () => {
-        // Fallback to HTTP API if WebSocket connection fails
-        fallbackHttpRun();
-      };
-
-      socket.onclose = () => {
-        if (wsRef.current === socket) {
-          wsRef.current = null;
-        }
-      };
-    } catch (err) {
-      fallbackHttpRun();
-    }
+    fallbackHttpRun();
   };
 
-  // HTTP API fallback for code execution
+  // HTTP API run
   const fallbackHttpRun = async () => {
     try {
       const res = await fetch("/api/run", {
@@ -155,7 +86,6 @@ export const TerminalConsole: React.FC<TerminalConsoleProps> = ({
       setHistory((prev) => [...prev, `\nExecution Error: ${String(err)}\nProcess exited with code 1\n`]);
     } finally {
       setIsRunning(false);
-      setWaitingForInput(false);
     }
   };
 
@@ -169,25 +99,8 @@ export const TerminalConsole: React.FC<TerminalConsoleProps> = ({
     }
   }, [code, isRunning, activeFileName]);
 
-  // Handle Terminal Stdin Input Submission
-  const handleInputSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const inputVal = currentInput;
-    setCurrentInput("");
-
-    // Append user input to history directly
-    setHistory((prev) => [...prev, inputVal + "\n"]);
-
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ type: "stdin", text: inputVal + "\n" }));
-    }
-
-    setWaitingForInput(false);
-  };
-
   const handleClear = () => {
     setHistory([]);
-    setWaitingForInput(false);
   };
 
   return (
@@ -223,7 +136,6 @@ export const TerminalConsole: React.FC<TerminalConsoleProps> = ({
 
       {/* Terminal Output Body */}
       <div
-        onClick={() => inputRef.current?.focus()}
         className="flex-1 p-3 font-mono text-xs md:text-sm overflow-y-auto bg-[#090d13] text-slate-200 leading-relaxed cursor-text"
       >
         {history.length === 0 && !isRunning && (
@@ -264,22 +176,6 @@ export const TerminalConsole: React.FC<TerminalConsoleProps> = ({
             return <span key={idx}>{chunk}</span>;
           })}
         </div>
-
-        {/* Interactive Stdin Input Form */}
-        {isRunning && (
-          <form onSubmit={handleInputSubmit} className="inline-flex items-center w-full mt-1">
-            <span className="text-emerald-400 font-bold mr-1">›</span>
-            <input
-              ref={inputRef}
-              type="text"
-              value={currentInput}
-              onChange={(e) => setCurrentInput(e.target.value)}
-              placeholder={waitingForInput ? "Type input and press Enter..." : ""}
-              className="flex-1 bg-transparent text-emerald-300 focus:outline-none font-mono text-xs md:text-sm"
-              autoFocus
-            />
-          </form>
-        )}
 
         <div ref={consoleBottomRef} />
       </div>
