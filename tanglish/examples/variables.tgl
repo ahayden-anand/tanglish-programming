@@ -1,0 +1,9 @@
+vai peyar = "Arun"
+vai vayasu = 20
+vai vilai = 99.50
+vai manithan = unmai
+
+sollu("Peyar: " + peyar)
+sollu("Vayasu: " + vayasu)
+sollu("Vilai: " + vilai)
+sollu("Manithana: " + manithan)

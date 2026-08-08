@@ -1,0 +1,15 @@
+vai peyar = "Anitha"
+vai mark = 85
+
+sollu("Student: " + peyar)
+sollu("Mark: " + mark)
+
+enna_na mark >= 90 {
+    sollu("Grade: Distinction")
+} illena {
+    enna_na mark >= 75 {
+        sollu("Grade: First Class")
+    } illena {
+        sollu("Grade: Pass")
+    }
+}

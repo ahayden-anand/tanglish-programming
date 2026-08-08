@@ -1,0 +1,9 @@
+sollu("--- 1 muthal 5 varai counting ---")
+vai x = 1
+
+suththu x <= 5 {
+    sollu("Count: " + x)
+    x = x + 1
+}
+
+sollu("Counting mudindhadhu!")

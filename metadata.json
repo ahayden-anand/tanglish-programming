@@ -1,0 +1,6 @@
+{
+  "name": "Tanglish Programming Language",
+  "description": "A beginner-friendly programming language with Tamil-inspired syntax built from scratch in Python, featuring a full Lexer, Parser, AST, Interpreter, CLI, and Web IDE.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

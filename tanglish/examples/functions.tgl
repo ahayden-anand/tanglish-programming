@@ -1,0 +1,16 @@
+seyal kootu(a, b) {
+    thiruppu a + b
+}
+
+seyal perukku(x, y) {
+    thiruppu x * y
+}
+
+vai num1 = 15
+vai num2 = 25
+
+vai sum = kootu(num1, num2)
+sollu("Sum of " + num1 + " + " + num2 + " = " + sum)
+
+vai prod = perukku(num1, num2)
+sollu("Product of " + num1 + " * " + num2 + " = " + prod)
