@@ -125,9 +125,24 @@ export const TerminalConsole: React.FC<TerminalConsoleProps> = ({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code })
       });
-      const data = await res.json();
 
-      if (data.success) {
+      const text = await res.text();
+      let data: any;
+
+      try {
+        data = JSON.parse(text);
+      } catch (parseError) {
+        setHistory((prev) => [
+          ...prev,
+          `\nExecution Error: Invalid JSON response from /api/run:\n${text}\nProcess exited with code 1\n`
+        ]);
+        return;
+      }
+
+      if (!res.ok) {
+        const errText = data.error || data.message || `HTTP ${res.status} ${res.statusText}`;
+        setHistory((prev) => [...prev, `${errText}\n`, `\nProcess exited with code 1\n`]);
+      } else if (data.success) {
         if (data.output) {
           setHistory((prev) => [...prev, data.output + "\n"]);
         }

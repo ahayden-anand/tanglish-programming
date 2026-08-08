@@ -10,6 +10,7 @@ async function startServer() {
   const app = express();
   const server = http.createServer(app);
   const PORT = 3000;
+  const pythonExecutable = process.env.PYTHON_EXECUTABLE || (process.platform === "win32" ? "python" : "python3");
 
   app.use(express.json());
 
@@ -41,7 +42,7 @@ async function startServer() {
           tempFilePath = path.join(process.cwd(), `.tmp_run_${Date.now()}_${Math.random().toString(36).substring(2)}.tgl`);
           fs.writeFileSync(tempFilePath, msg.code || "", "utf-8");
 
-          const child = spawn("python3", [tanglishPy, tempFilePath], {
+          const child = spawn(pythonExecutable, [tanglishPy, tempFilePath], {
             cwd: process.cwd(),
             env: { ...process.env, PYTHONUNBUFFERED: "1" }
           });
@@ -109,7 +110,7 @@ async function startServer() {
 
     const inputArgs = inputs ? ["--inputs", inputs] : [];
 
-    const pyProcess = spawn("python3", [tanglishPy, "--api", ...inputArgs], {
+    const pyProcess = spawn(pythonExecutable, [tanglishPy, "--api", ...inputArgs], {
       cwd: process.cwd(),
       env: { ...process.env, PYTHONUNBUFFERED: "1" }
     });
